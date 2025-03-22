@@ -37,7 +37,14 @@ async function handleInstancesRequest() {
 async function handleRequest(request) {
   // 解析请求的URL
   const url = new URL(request.url);
-  const instances = await handleInstancesRequest();
+  // 获取随机的instance地址
+  let instances = await handleInstancesRequest();
+  // 检查最后一个字符是否为 '/'
+  if (instances.endsWith('/')) {
+    // 去掉最后一个字符
+    instances = instances.slice(0, -1)
+  }
+
 
   // 检查请求路径是否为'/search'且存在查询参数
   if (url.pathname === '/search' && url.searchParams.toString() !== '') {
@@ -73,43 +80,42 @@ async function handleSearchRequest(request, url, instances) {
     // 如果不是GET或POST请求，返回401未授权响应
     return createUnauthorizedResponse();
   }
+  console.log(newUrl);
+
+  const headers = new Headers(request.headers);
+  headers.set('Accept', 'text/html');
 
   // 发起请求到新的URL并返回响应
   const response = await fetch(newUrl, {
     method: request.method,
-    headers: request.headers,
+    headers: headers,
     body: request.body
   });
 
-  // 处理HTML响应到JSON
-  if (response.headers.get('content-type')?.includes('text/html')) {
-    try {
-      // 获取HTML内容
-      const htmlContent = await response.text();
+  try {
+    // 获取HTML内容
+    const htmlContent = await response.text();
 
-      // 解析HTML转换为JSON
-      const jsonData = await parseHtmlToJson(htmlContent);
+    // 解析HTML转换为JSON
+    const jsonData = await parseHtmlToJson(htmlContent);
 
-      // 将JSON对象序列化为字符串
-      const jsonString = JSON.stringify(jsonData);
+    // 将JSON对象序列化为字符串
+    const jsonString = JSON.stringify(jsonData);
 
-      // 将中文转换为Unicode编码
-      const unicodeString = convertToUnicode(jsonString);
+    // 将中文转换为Unicode编码
+    const unicodeString = convertToUnicode(jsonString);
 
-      // 返回JSON响应
-      return new Response(unicodeString, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      });
-    } catch (error) {
-      console.error('Error parsing HTML:', error);
-      return response;
-    }
+    // 返回JSON响应
+    return new Response(unicodeString, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    console.error('Error parsing HTML:', error);
+    return response;
   }
-
-  return response;
 }
 
 // 处理Config请求的函数
