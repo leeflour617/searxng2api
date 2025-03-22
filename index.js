@@ -140,12 +140,12 @@ function createUnauthorizedResponse() {
     status: 401,
     headers: {
       'Content-Type': 'text/html',
-      'Location': 'https://linux.do'
+      'Location': 'https://linux.do/t/topic/507581'
     }
   });
 
   // 设置3秒后跳转到指定URL
-  response.headers.set('Refresh', '3; url=https://linux.do');
+  response.headers.set('Refresh', '3; url=https://linux.do/t/topic/507581');
 
   return response;
 }
