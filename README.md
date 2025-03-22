@@ -1,5 +1,4 @@
 # [searxng2api](https://github.com/Skilemon/searxng2api)
-
 Convert the SearXNG service output from HTML to JSON for publicly available services on the internet.
 
 把在互联网上公开的 SearXNG 服务由 HTML 输出转为 Json 输出。
@@ -12,9 +11,16 @@ Convert the SearXNG service output from HTML to JSON for publicly available serv
   - [x] Proxy /search request (代理 /search 请求)
   - [x] HTML to JSON (HTML 输出转为 Json 输出)
 
+## Plan (开发计划)
+- [ ] Proxy designated SearXNG service. (代理指定 SearXNG 服务)
+
+## Updates (更新记录)
+### 2025-03-22
+1. First release (第一版)
+
 ## Quickstart (快速开始)
 ### Prerequisite (前提条件)
-- Your Cloudflare account. (你的 Cloudflare 账户)
+- Cloudflare account. (Cloudflare 账户)
 ### Setup steps (设置步骤)
 1. Open your Cloudflare Workers page. (打开你的 Cloudflare Workers 页面)
 2. Create a new project. (新建一个项目)
