@@ -10,7 +10,7 @@ Convert the SearXNG service output from HTML to JSON for publicly available serv
   - [x] Select highly available port from the official public instances. (从官方实例从筛选高可用性的接口)
   - [x] Proxy /config request (代理 /config 请求)
   - [x] Proxy /search request (代理 /search 请求)
-  - [x] HTML data to JSON data (HTML 数据转换成 JSON 数据)
+  - [x] HTML to JSON (HTML 输出转为 Json 输出)
 
 ## Quickstart (快速开始)
 ### Prerequisite (前提条件)
