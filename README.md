@@ -4,19 +4,21 @@ Convert the SearXNG service output from HTML to JSON for publicly available serv
 把在互联网上公开的 SearXNG 服务由 HTML 输出转为 Json 输出。
 
 ## Features (特性)
-- Open-source, easy to deploy, and free (开源，易于部署，且完全免费)
-- Proxy SearXNG Service (代理 SearXNG 服务)
+- Open-source, easy to deploy, and free. (开源，易于部署，且完全免费)
+- Proxy SearXNG Service. (代理 SearXNG 服务)
   - [x] Select highly available port from the official public instances. (从官方实例从筛选高可用性的接口)
-  - [x] Proxy /config request (代理 /config 请求)
-  - [x] Proxy /search request (代理 /search 请求)
-  - [x] HTML to JSON (HTML 输出转为 Json 输出)
+  - [x] Proxy /config request. (代理 /config 请求)
+  - [x] Proxy /search request. (代理 /search 请求)
+  - [x] HTML to JSON. (HTML 输出转为 Json 输出)
 
 ## Plan (开发计划)
 - [ ] By setting variables to proxy the specified SearXNG service. (通过设置变量来代理指定的 SearXNG 服务)
 
 ## Updates (更新记录)
+### 2025-03-23
+1. Re-evaluate the availability of SearXNG service from multiple aspects. (从多个方面重新判断 SearXNG 服务的可用性)
 ### 2025-03-22
-1. First release (第一版)
+1. First release. (第一版)
 
 ## Quickstart (快速开始)
 ### Use (直接使用)
