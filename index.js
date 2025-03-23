@@ -16,14 +16,28 @@ async function handleInstancesRequest() {
   // 解析响应的JSON数据
   const data = await response.json();
 
-  // 过滤出有效的实例，条件是网络类型为'normal'且各项uptime均为100%
+  // 定义必须有效的搜索引擎列表（可自定义）
+  const REQUIRED_ENGINES = ['bing', 'google', 'duckduckgo'];
+  // 定义允许的最大错误率（例如：0 表示完全无错误）
+  const MAX_ERROR_RATE = 0;
+
+  // 过滤出有效的实例
   const validInstances = Object.entries(data.instances)
     .filter(([url, instance]) => (
-      instance.network_type === 'normal' && // 网络类型必须是'normal'
-      instance.uptime?.uptimeDay === 100 && // 当日在线率为100%
-      instance.uptime?.uptimeWeek === 100 && // 当周在线率为100%
-      instance.uptime?.uptimeMonth === 100 && // 当月在线率为100%
-      instance.uptime?.uptimeYear === 100 // 当年在线率为100%
+      instance.network_type === 'normal' && // 网络类型为 'normal'
+      instance.uptime?.uptimeDay === 100 && // 当日在线率为 100%
+      instance.timing?.initial?.all?.value < 1 && // 初始化耗时小于 1 秒
+      instance.timing?.search?.all?.median < 1 && // 搜索耗时中位数小于 1 秒
+      // 确保指定搜索引擎的可用性
+      REQUIRED_ENGINES.every(engine => {
+        const engineData = instance.engines?.[engine];
+        // 情况1：引擎未启用 → 过滤
+        if (engineData === undefined) return false;
+        // 情况2：引擎已启用但未报告错误率 → 视为有效（假设无错误）
+        if (engineData.error_rate === undefined) return true;
+        // 情况3：检查错误率是否在阈值内
+        return engineData.error_rate <= MAX_ERROR_RATE;
+      })
     ))
     .map(([url]) => url); // 从过滤结果中提取URL
 
@@ -39,12 +53,12 @@ async function handleRequest(request) {
   const url = new URL(request.url);
   // 获取随机的instance地址
   let instances = await handleInstancesRequest();
+  console.log(instances);
   // 检查最后一个字符是否为 '/'
   if (instances.endsWith('/')) {
     // 去掉最后一个字符
     instances = instances.slice(0, -1)
   }
-
 
   // 检查请求路径是否为'/search'且存在查询参数
   if (url.pathname === '/search' && url.searchParams.toString() !== '') {
@@ -135,17 +149,19 @@ async function handleConfigRequest(request, url, instances) {
 
 // 创建401未授权响应的函数
 function createUnauthorizedResponse() {
+  const redirect = 'https://linux.do/t/topic/507581';
+
   // 创建响应对象，设置401状态码和重定向头
   const response = new Response('Unauthorized', {
     status: 401,
     headers: {
       'Content-Type': 'text/html',
-      'Location': 'https://linux.do/t/topic/507581'
+      'Location': redirect
     }
   });
 
   // 设置3秒后跳转到指定URL
-  response.headers.set('Refresh', '3; url=https://linux.do/t/topic/507581');
+  response.headers.set('Refresh', `3; url=${redirect}`);
 
   return response;
 }
