@@ -53,7 +53,6 @@ async function handleRequest(request) {
   const url = new URL(request.url);
   // 获取随机的instance地址
   let instances = await handleInstancesRequest();
-  console.log(instances);
   // 检查最后一个字符是否为 '/'
   if (instances.endsWith('/')) {
     // 去掉最后一个字符
