@@ -15,6 +15,8 @@ Convert the SearXNG service output from HTML to JSON for publicly available serv
 - [ ] By setting variables to proxy the specified SearXNG service. (通过设置变量来代理指定的 SearXNG 服务)
 
 ## Updates (更新记录)
+### 2025-03-24
+1. Changes adapted for Cherry Studio v1.1.10. (适配 Cherry Studio v1.1.10 的更改)
 ### 2025-03-23
 1. Re-evaluate the availability of SearXNG service from multiple aspects. (从多个方面重新判断 SearXNG 服务的可用性)
 ### 2025-03-22
