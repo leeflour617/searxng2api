@@ -80,14 +80,16 @@ async function handleSearchRequest(request, url, instances) {
   // 根据请求方法处理参数
   if (request.method === 'GET') {
     // GET请求，解析并修改查询参数中的 format
-    const searchParams = new URLSearchParams(url.search);
-    searchParams.set('format', 'html'); // 强制设置 format=html
-    newUrl += `?${searchParams.toString()}`;
+    const params = new URLSearchParams(url.search);
+    params.set('format', 'html'); // 强制设置 format=html
+    params.delete('engines'); // 删除 engines
+    newUrl += `?${params.toString()}`;
   } else if (request.method === 'POST') {
     // POST请求，从请求体中获取表单数据并修改 format
     const formData = await request.formData();
     const params = new URLSearchParams(formData);
     params.set('format', 'html'); // 强制设置 format=html
+    params.delete('engines'); // 删除 engines
     newUrl += `?${params.toString()}`;
   } else {
     // 如果不是GET或POST请求，返回401未授权响应
