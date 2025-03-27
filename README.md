@@ -13,8 +13,12 @@ Convert the SearXNG service output from HTML to JSON for publicly available serv
 
 ## Plan (开发计划)
 - [ ] By setting variables to proxy the specified SearXNG service. (通过设置变量来代理指定的 SearXNG 服务)
+- [ ] Obtain the list of available instances through the ```/list``` request. (通过 ```/list``` 请求获取可用的实例列表)
 
 ## Updates (更新记录)
+### 2025-03-27
+1. Add blacklist list, exclude abnormal instance addresses. (新增黑名单列表，排除异常实例地址)
+2. Optimize the logic for judging service availability. (优化服务可用性的判断逻辑)
 ### 2025-03-24
 1. Changes adapted for Cherry Studio v1.1.10. (适配 Cherry Studio v1.1.10 的更改)
 ### 2025-03-23
