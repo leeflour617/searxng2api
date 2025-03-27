@@ -16,28 +16,35 @@ async function handleInstancesRequest() {
   // 解析响应的JSON数据
   const data = await response.json();
 
-  // 定义必须有效的搜索引擎列表（可自定义）
-  const REQUIRED_ENGINES = ['bing', 'google', 'duckduckgo'];
-  // 定义允许的最大错误率（例如：0 表示完全无错误）
+  // 黑名单实例列表（搜索异常的引擎）
+  const BLACK_LIST = ['searx.be', 'darmarit.org'];
+  // 定义必须有效的搜索引擎列表
+  const REQUIRED_ENGINES = []; // ['bing', 'google', 'duckduckgo']
+  // 定义允许的最大错误率（0表示不允许出错）
   const MAX_ERROR_RATE = 0;
 
   // 过滤出有效的实例
   const validInstances = Object.entries(data.instances)
     .filter(([url, instance]) => (
-      instance.network_type === 'normal' && // 网络类型为 'normal'
-      instance.uptime?.uptimeDay === 100 && // 当日在线率为 100%
-      instance.timing?.initial?.all?.value < 1 && // 初始化耗时小于 1 秒
+      instance.network_type === 'normal' && // 网络类型为'normal'
+      instance.uptime?.uptimeDay === 100 && // 今日在线率为100%
+      instance.timing?.initial?.all?.value < 1 && // 初始化耗中位数时小于 1 秒
       instance.timing?.search?.all?.median < 1 && // 搜索耗时中位数小于 1 秒
+      instance.timing?.initial?.success_percentage === 100 && // 初始化成功率为100%
+      instance.timing?.search?.success_percentage === 100 && // 搜索成功率为100%
+      instance.timing?.search_go?.success_percentage === 100 && // Google搜索成功率为100%
       // 确保指定搜索引擎的可用性
       REQUIRED_ENGINES.every(engine => {
         const engineData = instance.engines?.[engine];
-        // 情况1：引擎未启用 → 过滤
+        // 情况1：引擎未启用
         if (engineData === undefined) return false;
-        // 情况2：引擎已启用但未报告错误率 → 视为有效（假设无错误）
+        // 情况2：引擎已启用但未报告错误率
         if (engineData.error_rate === undefined) return true;
         // 情况3：检查错误率是否在阈值内
         return engineData.error_rate <= MAX_ERROR_RATE;
-      })
+      }) &&
+      // 新增黑名单检查：排除主机名在黑名单中的实例
+      !BLACK_LIST.includes(new URL(url).hostname)
     ))
     .map(([url]) => url); // 从过滤结果中提取URL
 
@@ -51,15 +58,18 @@ async function handleInstancesRequest() {
 async function handleRequest(request) {
   // 解析请求的URL
   const url = new URL(request.url);
-  // 获取随机的instance地址
+  // 获取随机的有效实例地址
   let instances = await handleInstancesRequest();
-  // 检查最后一个字符是否为 '/'
+  // 没找到合适的有效实例
+  if (instances === null) {
+    return createUnauthorizedResponse();
+  }
+  // 检查最后一个字符是否为'/'并去掉
   if (instances.endsWith('/')) {
-    // 去掉最后一个字符
     instances = instances.slice(0, -1)
   }
 
-  // 检查请求路径是否为'/search'且存在查询参数
+  // 检查请求路径
   if (url.pathname === '/search' && url.searchParams.toString() !== '') {
     // 如果是搜索请求，调用handleSearchRequest处理
     return handleSearchRequest(request, url, instances);
@@ -79,24 +89,24 @@ async function handleSearchRequest(request, url, instances) {
 
   // 根据请求方法处理参数
   if (request.method === 'GET') {
-    // GET请求，解析并修改查询参数中的 format
+    // GET请求，解析并修改查询参数中的format
     const params = new URLSearchParams(url.search);
-    params.set('format', 'html'); // 强制设置 format=html
-    params.delete('engines'); // 删除 engines
+    params.set('format', 'html'); // 强制设置format=html
+    params.delete('engines'); // 删除engines
     newUrl += `?${params.toString()}`;
   } else if (request.method === 'POST') {
-    // POST请求，从请求体中获取表单数据并修改 format
+    // POST请求，从请求体中获取表单数据并修改format
     const formData = await request.formData();
     const params = new URLSearchParams(formData);
-    params.set('format', 'html'); // 强制设置 format=html
-    params.delete('engines'); // 删除 engines
+    params.set('format', 'html'); // 强制设置format=html
+    params.delete('engines'); // 删除engines
     newUrl += `?${params.toString()}`;
   } else {
     // 如果不是GET或POST请求，返回401未授权响应
     return createUnauthorizedResponse();
   }
-  console.log(newUrl);
 
+  // 设置Accept为'text/html'
   const headers = new Headers(request.headers);
   headers.set('Accept', 'text/html');
 
@@ -110,16 +120,12 @@ async function handleSearchRequest(request, url, instances) {
   try {
     // 获取HTML内容
     const htmlContent = await response.text();
-
     // 解析HTML转换为JSON
-    const jsonData = await parseHtmlToJson(htmlContent);
-
+    const jsonData = await parseHtmlToJson(htmlContent, newUrl);
     // 将JSON对象序列化为字符串
     const jsonString = JSON.stringify(jsonData);
-
     // 将中文转换为Unicode编码
     const unicodeString = convertToUnicode(jsonString);
-
     // 返回JSON响应
     return new Response(unicodeString, {
       headers: {
@@ -137,14 +143,12 @@ async function handleSearchRequest(request, url, instances) {
 async function handleConfigRequest(request, url, instances) {
   // 构建新的请求URL
   let newUrl = `${instances}${url.pathname}`;
-
   // 发起请求到新的URL并返回响应
   const response = await fetch(newUrl, {
     method: request.method,
     headers: request.headers,
     body: request.body
   });
-
   return response;
 }
 
@@ -168,7 +172,7 @@ function createUnauthorizedResponse() {
 }
 
 // 解析HTML转换为JSON
-async function parseHtmlToJson(htmlContent) {
+async function parseHtmlToJson(htmlContent, newUrl) {
   // 使用简单的正则表达式提取数据，在无法使用DOM解析的环境中
   const queryMatch = htmlContent.match(/<input id="q" name="q".*?value="([^"]*?)"/i);
   const query = queryMatch ? queryMatch[1] : '';
@@ -251,6 +255,7 @@ async function parseHtmlToJson(htmlContent) {
 
   // 返回JSON对象
   return {
+    proxy: newUrl, // 代理请求的实际地址
     query: query,
     number_of_results: 0,
     results: results,
