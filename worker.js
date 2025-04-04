@@ -44,41 +44,55 @@ async function handleInstancesRequest() {
 
   // 如果没有有效的实例，则返回null
   if (validInstances.length === 0) return null;
-  // 从有效实例中随机选择一个返回
-  return validInstances[Math.floor(Math.random() * validInstances.length)];
+  // 返回有效实例列表
+  return validInstances;
 }
 
 // 主请求处理函数
 async function handleRequest(request, env) {
   // 解析请求的URL
   const url = new URL(request.url);
-
   // 定义实例变量
-  let instances;
+  let instances = await handleInstancesRequest();
+  let instance;
+
   // 检查环境变量 BASE_URL
   if (typeof env.BASE_URL !== 'undefined' && env.BASE_URL) {
-    instances = env.BASE_URL; // 使用用户配置的 BASE_URL
+    instance = env.BASE_URL; // 使用用户配置的 BASE_URL
   } else {
-    // 获取随机的有效实例地址
-    instances = await handleInstancesRequest();
+    // 从有效实例中随机选择一个
+    instance = instances[Math.floor(Math.random() * instances.length)];
     // 没找到合适的有效实例
-    if (instances === null) {
+    if (instance === null) {
       return createUnauthorizedResponse();
     }
   }
 
   // 检查最后一个字符是否为'/'并去掉
-  if (instances.endsWith('/')) {
-    instances = instances.slice(0, -1)
+  if (instance.endsWith('/')) {
+    instance = instance.slice(0, -1);
   }
 
   // 检查请求路径
   if (url.pathname === '/search' && url.searchParams.toString() !== '') {
     // 如果是搜索请求，调用handleSearchRequest处理
-    return handleSearchRequest(request, url, instances);
+    return handleSearchRequest(request, url, instance);
   } else if (url.pathname === '/config') {
     // 如果是配置文件请求，调用handleConfigRequest处理
-    return handleConfigRequest(request, url, instances);
+    return handleConfigRequest(request, url, instance);
+  } else if (url.pathname === '/list') {
+    // 显示可用的实例列表
+    const listResult = {
+      code: 200,
+      data: instances
+    }
+    // 返回JSON响应
+    return new Response(JSON.stringify(listResult), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
   } else {
     // 如果不是搜索请求，返回401未授权响应
     return createUnauthorizedResponse();
@@ -86,9 +100,9 @@ async function handleRequest(request, env) {
 }
 
 // 处理搜索请求的函数
-async function handleSearchRequest(request, url, instances) {
+async function handleSearchRequest(request, url, instance) {
   // 构建新的请求URL
-  let newUrl = `${instances}${url.pathname}`;
+  let newUrl = `${instance}${url.pathname}`;
 
   // 根据请求方法处理参数
   if (request.method === 'GET') {
@@ -236,7 +250,7 @@ async function parseHtmlToJson(htmlContent, newUrl) {
 
     // 创建结果对象
     const result = {
-      url: url, // 代理请求的实际地址
+      url: url,
       title: title,
       content: content,
       publishedDate: publishedDate,
@@ -258,7 +272,7 @@ async function parseHtmlToJson(htmlContent, newUrl) {
 
   // 返回JSON对象
   return {
-    proxy: newUrl,
+    proxy: newUrl, // 代理请求的实际地址
     query: query,
     number_of_results: 0,
     results: results,
