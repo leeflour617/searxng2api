@@ -12,10 +12,12 @@ Convert the SearXNG service output from HTML to JSON for publicly available serv
   - [x] HTML to JSON. (HTML 输出转为 Json 输出)
 
 ## Plan (开发计划)
-- [ ] By setting variables to proxy the specified SearXNG service. (通过设置变量来代理指定的 SearXNG 服务)
+- [x] By ```BASE_URL``` variables to proxy the specified SearXNG service. (通过 ```BASE_URL``` 变量来代理指定的 SearXNG 服务)
 - [ ] Obtain the list of available instances through the ```/list``` request. (通过 ```/list``` 请求获取可用的实例列表)
 
 ## Updates (更新记录)
+### 2025-04-04
+1. By ```BASE_URL``` variables to proxy the specified SearXNG service. (通过 ```BASE_URL``` 变量来代理指定的 SearXNG 服务)
 ### 2025-03-27
 1. Add blacklist list, exclude abnormal instance addresses. (新增黑名单列表，排除异常实例地址)
 2. Optimize the logic for judging service availability. (优化服务可用性的判断逻辑)
@@ -34,4 +36,4 @@ Enter the following address into Cherry Studio or other applications. (把以下
 1. A Cloudflare account. (一个 Cloudflare 账户)
 2. Open your Cloudflare Workers page. (打开你的 Cloudflare Workers 页面)
 3. Create a new project. (新建一个项目)
-4. Copy the content of the ```index.js``` file in this project to the one you just created and save it. (将本项目中 ```index.js``` 文件的内容复制到你刚刚新建的项目里保存即可)
+4. Copy the content of the ```worker.js``` file in this project to the one you just created and save it. (将本项目中 ```worker.js``` 文件的内容复制到你刚刚新建的项目里保存即可)

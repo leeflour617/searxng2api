@@ -1,13 +1,8 @@
-// 监听fetch事件，处理所有进入的HTTP请求
-addEventListener('fetch', event => {
-  try {
-    // 尝试处理请求并返回响应
-    event.respondWith(handleRequest(event.request))
-  } catch (e) {
-    // 如果发生错误，返回错误信息
-    event.respondWith(new Response('Error thrown ' + e.message))
-  }
-})
+export default {
+  async fetch(request, env, ctx) {
+    return handleRequest(request, env);
+  },
+};
 
 // 定义一个异步函数来处理实例请求
 async function handleInstancesRequest() {
@@ -15,9 +10,8 @@ async function handleInstancesRequest() {
   const response = await fetch('https://searx.space/data/instances.json');
   // 解析响应的JSON数据
   const data = await response.json();
-
   // 黑名单实例列表（搜索异常的引擎）
-  const BLACK_LIST = ['searx.be', 'darmarit.org'];
+  const BLACK_LIST = ['searx.be', 'darmarit.org', 'search.inetol.net'];
   // 定义必须有效的搜索引擎列表
   const REQUIRED_ENGINES = []; // ['bing', 'google', 'duckduckgo']
   // 定义允许的最大错误率（0表示不允许出错）
@@ -55,15 +49,24 @@ async function handleInstancesRequest() {
 }
 
 // 主请求处理函数
-async function handleRequest(request) {
+async function handleRequest(request, env) {
   // 解析请求的URL
   const url = new URL(request.url);
-  // 获取随机的有效实例地址
-  let instances = await handleInstancesRequest();
-  // 没找到合适的有效实例
-  if (instances === null) {
-    return createUnauthorizedResponse();
+
+  // 定义实例变量
+  let instances;
+  // 检查环境变量 BASE_URL
+  if (typeof env.BASE_URL !== 'undefined' && env.BASE_URL) {
+    instances = env.BASE_URL; // 使用用户配置的 BASE_URL
+  } else {
+    // 获取随机的有效实例地址
+    instances = await handleInstancesRequest();
+    // 没找到合适的有效实例
+    if (instances === null) {
+      return createUnauthorizedResponse();
+    }
   }
+
   // 检查最后一个字符是否为'/'并去掉
   if (instances.endsWith('/')) {
     instances = instances.slice(0, -1)
@@ -233,7 +236,7 @@ async function parseHtmlToJson(htmlContent, newUrl) {
 
     // 创建结果对象
     const result = {
-      url: url,
+      url: url, // 代理请求的实际地址
       title: title,
       content: content,
       publishedDate: publishedDate,
@@ -255,7 +258,7 @@ async function parseHtmlToJson(htmlContent, newUrl) {
 
   // 返回JSON对象
   return {
-    proxy: newUrl, // 代理请求的实际地址
+    proxy: newUrl,
     query: query,
     number_of_results: 0,
     results: results,
