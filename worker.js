@@ -11,7 +11,7 @@ async function handleInstancesRequest() {
   // 解析响应的JSON数据
   const data = await response.json();
   // 黑名单实例列表（搜索异常的引擎）
-  const BLACK_LIST = ['searx.be', 'darmarit.org', 'search.inetol.net'];
+  const BLACK_LIST = ['searx.be', 'darmarit.org', 'search.inetol.net', 's.mble.dk'];
   // 定义必须有效的搜索引擎列表
   const REQUIRED_ENGINES = []; // ['bing', 'google', 'duckduckgo']
   // 定义允许的最大错误率（0表示不允许出错）
@@ -110,6 +110,10 @@ async function handleSearchRequest(request, url, instance) {
     const params = new URLSearchParams(url.search);
     params.set('format', 'html'); // 强制设置format=html
     params.delete('engines'); // 删除engines
+    // 当 categories 参数为空时赋予默认值
+    if (params.get('categories') == null) {
+      params.set('categories', 'general');
+    }
     newUrl += `?${params.toString()}`;
   } else if (request.method === 'POST') {
     // POST请求，从请求体中获取表单数据并修改format
@@ -117,6 +121,10 @@ async function handleSearchRequest(request, url, instance) {
     const params = new URLSearchParams(formData);
     params.set('format', 'html'); // 强制设置format=html
     params.delete('engines'); // 删除engines
+    // 当 categories 参数为空时赋予默认值
+    if (params.get('categories') == null) {
+      params.set('categories', 'general');
+    }
     newUrl += `?${params.toString()}`;
   } else {
     // 如果不是GET或POST请求，返回401未授权响应
@@ -201,12 +209,9 @@ async function parseHtmlToJson(htmlContent, newUrl) {
     unresponsive_engines: []
   };
 
-  let position = 0;
   // 临时存储当前处理的引擎名和错误信息
   let currentEngine = null;
   let currentError = null;
-  // 临时结果对象
-  let cuurentResult = {};
 
   // get search value
   await new HTMLRewriter()
@@ -249,6 +254,24 @@ async function parseHtmlToJson(htmlContent, newUrl) {
     .transform(new Response(htmlContent))
     .text();
 
+  const params = new URLSearchParams(new URL(newUrl).search);
+  const categories = params.get('categories');
+  if (categories == 'general') {
+    jsonResult.results = await generalParse(htmlContent);
+  } else if (categories == 'images') {
+    jsonResult.results = await imagesParse(htmlContent);
+  } else {
+    return createUnauthorizedResponse();
+  }
+
+  return jsonResult;
+}
+
+// generalParse
+async function generalParse(htmlContent) {
+  let result = [];
+  let position = 1;
+  let cuurentResult = {};
   // get search result info
   await new HTMLRewriter()
     .on('article.result', {
@@ -270,7 +293,7 @@ async function parseHtmlToJson(htmlContent, newUrl) {
           score: 1 / position,
           category: 'general'
         }
-        jsonResult.results.push(cuurentResult);
+        result.push(cuurentResult);
       }
     })
     .on('article.result h3 a', {
@@ -286,10 +309,10 @@ async function parseHtmlToJson(htmlContent, newUrl) {
     })
     .on('article.result p.content', {
       text(text) {
-        cuurentResult.content += text.text.trim();
+        cuurentResult.content += text.text.replace('&nbsp;', '').trim();
       }
     })
-    .on('article.result div.engines > span', {
+    .on('article.result div.engines span', {
       text(text) {
         if (cuurentResult.engine.length == 0) {
           cuurentResult.engine += text.text;
@@ -308,7 +331,125 @@ async function parseHtmlToJson(htmlContent, newUrl) {
     .transform(new Response(htmlContent))
     .text();
 
-  return jsonResult;
+  return result;
+}
+
+// imagesParse
+async function imagesParse(htmlContent) {
+  let result = [];
+  let position = 1;
+  let cuurentResult = {};
+  // get search result info
+  await new HTMLRewriter()
+    .on('article.result', {
+      element(element) {
+        position++;
+        cuurentResult = {
+          url: '',
+          title: '',
+          content: '',
+          publishedDate: null,
+          author: '',
+          thumbnail: '',
+          thumbnail_src: '',
+          resolution: '',
+          img_format: '',
+          filesize: '',
+          engine: '',
+          template: 'images.html',
+          parsed_url: [],
+          img_src: '',
+          source: '',
+          priority: '',
+          engines: [],
+          positions: [position],
+          score: 1 / position,
+          category: 'images'
+        }
+        result.push(cuurentResult);
+      }
+    })
+    .on('article.result div div h4', {
+      text(text) {
+        cuurentResult.title += text.text;
+      }
+    })
+    .on('article.result div div p.result-url a', {
+      element(element) {
+        cuurentResult.url = element.getAttribute('href');
+        cuurentResult.parsed_url = parseUrl(element.getAttribute('href'));
+      }
+    })
+    .on('article.result div div p.result-content', {
+      text(text) {
+        cuurentResult.content += text.text.replace('&nbsp;', '').trim();
+      }
+    })
+    .on('article.result div div p.result-engine', {
+      text(text) {
+        cuurentResult.engine += text.text;
+      }
+    })
+    // image src
+    .on('article.result div a.result-images-source', {
+      element(element) {
+        cuurentResult.img_src = element.getAttribute('href');
+        cuurentResult.thumbnail_src = element.getAttribute('href');
+      }
+    })
+    .on('article.result div div p.result-author', {
+      text(text) {
+        cuurentResult.author += text.text.replace('&nbsp;', '');
+      }
+    })
+    .on('article.result div div p.result-source', {
+      text(text) {
+        cuurentResult.source += text.text.replace('&nbsp;', '');
+      }
+    })
+    .on('article.result div div p.result-resolution', {
+      text(text) {
+        cuurentResult.resolution += text.text.replace('&nbsp;', '');
+      }
+    })
+    .on('article.result div div p.result-img_format', {
+      text(text) {
+        cuurentResult.img_format += text.text;
+      }
+    })
+    .on('article.result div div p.result-filesize', {
+      text(text) {
+        cuurentResult.filesize += text.text.replace('&nbsp;', '');
+      }
+    })
+    .transform(new Response(htmlContent))
+    .text();
+
+  for (let i = 0; i < result.length; i++) {
+    // resolution
+    if (result[i].resolution.includes(':')) {
+      result[i].resolution = result[i].resolution.split(':')[1];
+    }
+    // filesize
+    if (result[i].filesize.includes(':')) {
+      result[i].filesize = result[i].filesize.split(':')[1];
+    }
+    // engine
+    if (result[i].engine.includes(':')) {
+      result[i].engine = result[i].engine.split(':')[1];
+      result[i].engines.push(result[i].engine);
+    }
+    // author
+    if (result[i].author.includes(':')) {
+      result[i].author = result[i].author.split(':')[1];
+    }
+    // source
+    if (result[i].source.includes(':')) {
+      result[i].source = result[i].source.split(':')[1];
+    }
+  }
+
+  return result;
 }
 
 // 解析URL成需要的格式

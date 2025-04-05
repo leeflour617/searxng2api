@@ -14,9 +14,17 @@ Convert the SearXNG service output from HTML to JSON for publicly available serv
 <!-- ## Plan (开发计划) -->
 <!-- - [ ]  -->
 
+## Environment Variables (环境变量)
+```BASE_URL``` (optional/可选)
+
+Forcefully specify the address of the service to be proxied. (强行指定需要代理的服务地址)
+
+> Example: ```https://example.com```
+
 ## Updates (更新记录)
 ### 2025-04-05
 1. Changed the method of extracting data from regular matching to HTMLRewriter API. (提取数据的方法由正则匹配改为 HTMLRewriter API)
+2. Support for ```categories=images``` search. (支持 ```categories=images``` 的搜索)
 ### 2025-04-04
 1. By ```BASE_URL``` variables to proxy the specified SearXNG service. (通过 ```BASE_URL``` 变量来代理指定的 SearXNG 服务)
 2. Obtain the list of available instances through the ```/list``` request. (通过 ```/list``` 请求获取可用的实例列表)
@@ -24,7 +32,7 @@ Convert the SearXNG service output from HTML to JSON for publicly available serv
 1. Add blacklist list, exclude abnormal instance addresses. (新增黑名单列表，排除异常实例地址)
 2. Optimize the logic for judging service availability. (优化服务可用性的判断逻辑)
 ### 2025-03-24
-1. Changes adapted for Cherry Studio v1.1.10. (适配 Cherry Studio v1.1.10 的更改)
+1. Ignore the specified ```engines``` parameter. (忽略指定的 ```engines``` 参数)
 ### 2025-03-23
 1. Re-evaluate the availability of SearXNG service from multiple aspects. (从多个方面重新判断 SearXNG 服务的可用性)
 ### 2025-03-22
