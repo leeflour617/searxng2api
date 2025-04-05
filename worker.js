@@ -141,10 +141,8 @@ async function handleSearchRequest(request, url, instance) {
     const jsonData = await parseHtmlToJson(htmlContent, newUrl);
     // 将JSON对象序列化为字符串
     const jsonString = JSON.stringify(jsonData);
-    // 将中文转换为Unicode编码
-    const unicodeString = convertToUnicode(jsonString);
     // 返回JSON响应
-    return new Response(unicodeString, {
+    return new Response(jsonString, {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
@@ -188,100 +186,129 @@ function createUnauthorizedResponse() {
   return response;
 }
 
-// 解析HTML转换为JSON
+// 解析HTML转换为JSON，使用HTMLRewriter API
 async function parseHtmlToJson(htmlContent, newUrl) {
-  // 使用简单的正则表达式提取数据，在无法使用DOM解析的环境中
-  const queryMatch = htmlContent.match(/<input id="q" name="q".*?value="([^"]*?)"/i);
-  const query = queryMatch ? queryMatch[1] : '';
-
-  // 提取未响应的引擎
-  const unresponsiveEngines = [];
-  const engineTableRegex = /<table class="engine-stats"[^>]*>([\s\S]*?)<\/table>/i;
-  const tableMatch = htmlContent.match(engineTableRegex);
-
-  if (tableMatch) {
-    const tableContent = tableMatch[1];
-    const engineErrorRegex = /<td class="engine-name">\s*<a[^>]*>([^<]+)<\/a>\s*<\/td>\s*<td class="response-error">([^<]+)<\/td>/gi;
-
-    let engineMatch;
-    while ((engineMatch = engineErrorRegex.exec(tableContent)) !== null) {
-      unresponsiveEngines.push([engineMatch[1].trim(), engineMatch[2].trim()]);
-    }
-  }
-
-  // 提取搜索结果
-  const results = [];
-  const articleRegex = /<article class="result result-default category-general">([\s\S]*?)<div class="break"><\/div>\s*<\/article>/gi;
-
-  let match;
-  let position = 1;
-
-  while ((match = articleRegex.exec(htmlContent)) !== null) {
-    const articleContent = match[1];
-
-    // 提取URL
-    const urlMatch = articleContent.match(/<a href="([^"]*)" class="url_header"/i);
-    const url = urlMatch ? urlMatch[1] : '';
-
-    // 提取标题
-    const titleMatch = articleContent.match(/<h3><a[^>]*>(.+?)<\/a><\/h3>/i);
-    const title = titleMatch ? cleanHtmlTags(titleMatch[1]) : '';
-
-    // 提取内容
-    const contentMatch = articleContent.match(/<p class="content">\s*(.*?)\s*<\/p>/i);
-    const content = contentMatch ? cleanHtmlTags(contentMatch[1]) : '';
-
-    // 提取发布日期
-    const dateMatch = articleContent.match(/<time class="published_date"\s*datetime="([^"]*)"/i);
-    const publishedDate = dateMatch ? dateMatch[1] : null;
-
-    // 提取搜索引擎
-    const engineMatch = articleContent.match(/<div class="engines">\s*<span>([^<]*)<\/span>/i);
-    const engine = engineMatch ? engineMatch[1].trim() : '';
-
-    // 将搜索引擎添加到engines数组
-    const engines = [];
-    if (engine) {
-      engines.push(engine);
-    }
-
-    // 解析URL
-    const parsedUrl = parseUrl(url);
-
-    // 创建结果对象
-    const result = {
-      url: url,
-      title: title,
-      content: content,
-      publishedDate: publishedDate,
-      thumbnail: null,
-      engine: engine,
-      template: 'default.html',
-      parsed_url: parsedUrl,
-      img_src: '',
-      priority: '',
-      engines: engines,
-      positions: [position],
-      score: 1 / position,
-      category: 'general'
-    };
-
-    results.push(result);
-    position++;
-  }
-
-  // 返回JSON对象
-  return {
-    proxy: newUrl, // 代理请求的实际地址
-    query: query,
+  // 最终的解析结果
+  const jsonResult = {
+    proxy: newUrl,
+    query: '',
     number_of_results: 0,
-    results: results,
+    results: [],
     answers: [],
     corrections: [],
     infoboxes: [],
     suggestions: [],
-    unresponsive_engines: unresponsiveEngines
+    unresponsive_engines: []
   };
+
+  let position = 0;
+  // 临时存储当前处理的引擎名和错误信息
+  let currentEngine = null;
+  let currentError = null;
+  // 临时结果对象
+  let cuurentResult = {};
+
+  // get search value
+  await new HTMLRewriter()
+    .on('#q', {
+      element(element) {
+        // 获取元素的属性
+        jsonResult.query = element.getAttribute('value');
+      }
+    })
+    .transform(new Response(htmlContent))
+    .text();
+
+  // get error engines
+  await new HTMLRewriter()
+    .on('tr', {
+      element(element) {
+        // reset
+        currentEngine = null;
+        currentError = null;
+      }
+    })
+    .on('.engine-name a', {
+      text(text) {
+        // 从链接文本获取引擎名称
+        if (currentEngine === null) {
+          currentEngine = text.text;
+        }
+      }
+    })
+    .on('.response-error', {
+      text(text) {
+        // 提取错误信息
+        currentError = text.text;
+        // 如果已有引擎名和错误信息，添加到结果数组
+        if (currentEngine && currentError) {
+          jsonResult.unresponsive_engines.push([currentEngine, currentError]);
+        }
+      }
+    })
+    .transform(new Response(htmlContent))
+    .text();
+
+  // get search result info
+  await new HTMLRewriter()
+    .on('article.result', {
+      element(element) {
+        position++;
+        cuurentResult = {
+          url: '',
+          title: '',
+          content: '',
+          publishedDate: null,
+          thumbnail: null,
+          engine: '',
+          template: 'default.html',
+          parsed_url: [],
+          img_src: '',
+          priority: '',
+          engines: [],
+          positions: [position],
+          score: 1 / position,
+          category: 'general'
+        }
+        jsonResult.results.push(cuurentResult);
+      }
+    })
+    .on('article.result h3 a', {
+      element(element) {
+        // 获取元素的属性
+        cuurentResult.url = element.getAttribute('href');
+        cuurentResult.parsed_url = parseUrl(element.getAttribute('href'));
+      },
+      text(text) {
+        // 提取标题
+        cuurentResult.title += text.text;
+      }
+    })
+    .on('article.result p.content', {
+      text(text) {
+        cuurentResult.content += text.text.trim();
+      }
+    })
+    .on('article.result div.engines > span', {
+      text(text) {
+        if (cuurentResult.engine.length == 0) {
+          cuurentResult.engine += text.text;
+        }
+        if (text.text.length > 0) {
+          cuurentResult.engines.push(text.text);
+        }
+      }
+    })
+    .on('article.result time.published_date', {
+      element(element) {
+        // 获取元素的属性
+        cuurentResult.publishedDate = element.getAttribute('datetime');
+      }
+    })
+    .transform(new Response(htmlContent))
+    .text();
+
+  return jsonResult;
 }
 
 // 解析URL成需要的格式
@@ -319,16 +346,4 @@ function parseUrl(url) {
   }
 
   return parts;
-}
-
-// 转换中文为Unicode字符
-function convertToUnicode(str) {
-  return str.replace(/[\u4e00-\u9fa5]/g, function (match) {
-    return '\\u' + match.charCodeAt(0).toString(16).padStart(4, '0');
-  });
-}
-
-// 清理HTML标签
-function cleanHtmlTags(text) {
-  return text.replace(/<[^>]+>/g, '');
 }

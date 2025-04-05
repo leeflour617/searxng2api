@@ -15,6 +15,8 @@ Convert the SearXNG service output from HTML to JSON for publicly available serv
 <!-- - [ ]  -->
 
 ## Updates (更新记录)
+### 2025-04-05
+1. Changed the method of extracting data from regular matching to HTMLRewriter API. (提取数据的方法由正则匹配改为 HTMLRewriter API)
 ### 2025-04-04
 1. By ```BASE_URL``` variables to proxy the specified SearXNG service. (通过 ```BASE_URL``` 变量来代理指定的 SearXNG 服务)
 2. Obtain the list of available instances through the ```/list``` request. (通过 ```/list``` 请求获取可用的实例列表)
