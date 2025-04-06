@@ -28,7 +28,7 @@ Ignore the contents of the ```engines``` parameter for more search results. (忽
 > Example: ```enable```
 
 ## Updates (更新记录)
-### 2025-04-05
+### 2025-04-06
 1. Added ```MAX_RESULT``` variable to control whether the ```engines``` parameter is ignored. (新增 ```MAX_RESULT``` 变量来控制是否忽略 ```engines``` 参数)
 ### 2025-04-05
 1. Changed the method of extracting data from regular matching to HTMLRewriter API. (提取数据的方法由正则匹配改为 HTMLRewriter API)
