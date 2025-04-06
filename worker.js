@@ -76,7 +76,7 @@ async function handleRequest(request, env) {
   // 检查请求路径
   if (url.pathname === '/search' && url.searchParams.toString() !== '') {
     // 如果是搜索请求，调用handleSearchRequest处理
-    return handleSearchRequest(request, url, instance);
+    return handleSearchRequest(request, url, instance, env);
   } else if (url.pathname === '/config') {
     // 如果是配置文件请求，调用handleConfigRequest处理
     return handleConfigRequest(request, url, instance);
@@ -100,27 +100,33 @@ async function handleRequest(request, env) {
 }
 
 // 处理搜索请求的函数
-async function handleSearchRequest(request, url, instance) {
+async function handleSearchRequest(request, url, instance, env) {
   // 构建新的请求URL
   let newUrl = `${instance}${url.pathname}`;
 
   // 根据请求方法处理参数
   if (request.method === 'GET') {
-    // GET请求，解析并修改查询参数中的format
+    // GET请求，解析并修改查询参数中的 format
     const params = new URLSearchParams(url.search);
-    params.set('format', 'html'); // 强制设置format=html
-    params.delete('engines'); // 删除engines
+    params.set('format', 'html'); // 强制设置 format=html
+    // 检查环境变量 MORE_RESULT
+    if (typeof env.MORE_RESULT !== 'undefined' && env.MORE_RESULT == 'enable') {
+      params.delete('engines'); // 删除指定的 engines
+    }
     // 当 categories 参数为空时赋予默认值
     if (params.get('categories') == null) {
       params.set('categories', 'general');
     }
     newUrl += `?${params.toString()}`;
   } else if (request.method === 'POST') {
-    // POST请求，从请求体中获取表单数据并修改format
+    // POST请求，从请求体中获取表单数据并修改 format
     const formData = await request.formData();
     const params = new URLSearchParams(formData);
-    params.set('format', 'html'); // 强制设置format=html
-    params.delete('engines'); // 删除engines
+    params.set('format', 'html'); // 强制设置 format=html
+    // 检查环境变量 MORE_RESULT
+    if (typeof env.MORE_RESULT !== 'undefined' && env.MORE_RESULT == 'enable') {
+      params.delete('engines'); // 删除指定的 engines
+    }
     // 当 categories 参数为空时赋予默认值
     if (params.get('categories') == null) {
       params.set('categories', 'general');

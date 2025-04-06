@@ -21,7 +21,15 @@ Forcefully specify the address of the service to be proxied. (强行指定需要
 
 > Example: ```https://example.com```
 
+```MORE_RESULT``` (optional/可选)
+
+Ignore the contents of the ```engines``` parameter for more search results. (忽略 ```engines``` 参数的内容以获取更多搜索结果)
+
+> Example: ```enable```
+
 ## Updates (更新记录)
+### 2025-04-05
+1. Added ```MAX_RESULT``` variable to control whether the ```engines``` parameter is ignored. (新增 ```MAX_RESULT``` 变量来控制是否忽略 ```engines``` 参数)
 ### 2025-04-05
 1. Changed the method of extracting data from regular matching to HTMLRewriter API. (提取数据的方法由正则匹配改为 HTMLRewriter API)
 2. Support for ```categories=images``` search. (支持 ```categories=images``` 的搜索)
