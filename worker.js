@@ -4,7 +4,7 @@ export default {
   },
 };
 
-// 定义一个异步函数来处理实例请求
+// 定义一个异步函数来处理实例
 async function handleInstancesRequest() {
   // 使用fetch API异步获取实例数据
   const response = await fetch('https://searx.space/data/instances.json');
