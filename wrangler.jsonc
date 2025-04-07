@@ -1,5 +1,5 @@
 {
-  "name": "my-worker", // 可自定义名称
+  "name": "searxng2api", // 可自定义名称
   "compatibility_date": "2025-04-07", // 必须是当天日期
   "main": "worker.js"   // 指定入口文件
 }
